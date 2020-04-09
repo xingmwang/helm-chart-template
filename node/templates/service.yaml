@@ -1,0 +1,20 @@
+{{- $fullName := include "node-app.fullname" . -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.service.serviceName | default $fullName }}
+  labels:
+    app: {{ template "node-app.name" . }}
+    chart: {{ template "node-app.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: {{ template "node-app.name" . }}
+    release: {{ .Release.Name }}

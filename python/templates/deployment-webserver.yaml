@@ -1,0 +1,126 @@
+{{- if .Values.webserver.enabled }}
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ template "python-app.fullname" . }}-webserver
+  labels:
+    app: {{ template "python-app.name" . }}-webserver
+    chart: {{ template "python-app.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: {{ template "python-app.name" . }}-webserver
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "python-app.name" . }}-webserver
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}-webserver
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: 
+          {{- range .Values.webserver.command }}
+            - {{ . }}
+          {{- end}}
+          env:
+            - name: MY_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: SERVER_PORT
+              value: {{ .Values.service.internalPort |quote }}
+            - name: ENV
+              value: {{ .Values.apollo.apolloEnv }}
+            - name: APOLLOMETA
+              value: {{ .Values.apollo.apolloMeta }}
+            - name: APOLLOCLUSTER
+              value: {{ .Values.apollo.apolloIDC }}
+          {{- if .Values.service.internalPort }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.internalPort }}
+              protocol: TCP
+          {{- end}}
+          volumeMounts:
+          - name: tz-config
+            mountPath: /etc/localtime
+          {{- if and .Values.livenessProbe.enabled .Values.healthCheck }}
+          livenessProbe:
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+            httpGet:
+                path: {{ .Values.healthCheck }}
+                port: http
+          {{- else if and .Values.livenessProbe.enabled .Values.service.internalPort }}
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.service.internalPort }}
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          {{- end }}
+          {{- if and .Values.readinessProbe.enabled .Values.healthCheck  }}
+          readinessProbe:
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            httpGet:
+              path: {{ .Values.healthCheck }}
+              port: http
+          {{- else if and .Values.readinessProbe.enabled .Values.service.internalPort }}
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.service.internalPort }}
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+          {{- end }}
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+    {{- with .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+      volumes:
+      - name: tz-config
+        hostPath:
+          path: /usr/share/zoneinfo/{{ .Values.timezone }}
+      {{- if .Values.affinity }}
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              {{- range $key,$val := .Values.affinity }}
+              - key: {{ $key }}
+                operator: In
+                values:
+                - {{ $val }}
+              {{- end }}
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: {{ .Values.affinity.dedicated |default "app" }}
+                  operator: In
+                  values:
+                  - {{ template "python-app.fullname" . }}-webserver
+              topologyKey: kubernetes.io/hostname
+        {{- end}}
+    {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+    {{- end }}
+      imagePullSecrets:
+      - name: harbor
+{{- end}}

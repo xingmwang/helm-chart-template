@@ -1,0 +1,45 @@
+{{- if .Values.ingressb -}}
+{{- $fullName := include "java-app.fullname" . -}}
+{{- $ingressPath := .Values.ingressb.internalType.hostsAndPaths -}}
+{{- $servicename := .Values.service.serviceName }}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}-internalb
+  labels:
+    app: {{ template "java-app.name" . }}
+    chart: {{ template "java-app.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    traffic-type: internal
+  {{- range $key,$val := .Values.ingressb.internalType.labels }}
+    {{$key}}: {{$val}}  
+  {{- end}}
+{{- with .Values.ingressb.internalType.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+{{- if .Values.ingressb.tls }}
+  tls:
+  {{- range .Values.ingressb.tls }}
+    - hosts:
+      {{- range .hosts }}
+        - {{ . }}
+      {{- end }}
+      secretName: {{ .secretName }}
+  {{- end }}
+{{- end }}
+  rules:
+  {{- range $key,$val := .Values.ingressb.internalType.hostsAndPaths }}
+    - host: {{ $key }}
+      http:
+        paths:
+        {{- range $val }}
+          - path: {{ . }}
+            backend:
+              serviceName: {{ $servicename | default $fullName }}
+              servicePort: http
+        {{- end}}
+  {{- end }}
+{{- end }}

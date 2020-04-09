@@ -1,0 +1,45 @@
+{{- if .Values.ingress.internalType.enabled -}}
+{{- $fullName := include "python-app.fullname" . -}}
+{{- $ingressPath := .Values.ingress.internalType.hostsAndPaths -}}
+{{- $servicename := .Values.service.serviceName }}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}-internal
+  labels:
+    app: {{ template "python-app.name" . }}
+    chart: {{ template "python-app.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    traffic-type: internal
+  {{- range $key,$val := .Values.ingress.internalType.labels }}
+    {{$key}}: {{$val}}  
+  {{- end}}
+{{- with .Values.ingress.internalType.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+{{- if .Values.ingress.tls }}
+  tls:
+  {{- range .Values.ingress.tls }}
+    - hosts:
+      {{- range .hosts }}
+        - {{ . }}
+      {{- end }}
+      secretName: {{ .secretName }}
+  {{- end }}
+{{- end }}
+  rules:
+  {{- range $key,$val := .Values.ingress.internalType.hostsAndPaths }}
+    - host: {{ $key }}
+      http:
+        paths:
+        {{- range $val }}
+          - path: {{ . }}
+            backend:
+              serviceName: {{ $servicename | default $fullName }}
+              servicePort: http
+        {{- end}}
+  {{- end }}
+{{- end }}

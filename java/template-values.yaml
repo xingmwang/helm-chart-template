@@ -1,0 +1,90 @@
+# Default values for java-app.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: __image
+  tag: __stable
+  pullPolicy: IfNotPresent
+
+service:
+  enabled: false
+  type: ClusterIP
+  internalPort: 
+  serviceName:
+  name: http
+
+ingress:
+  enabled: true
+  internalType:
+    enabled: false
+    annotations:
+      kubernetes.io/ingress.class: traefik
+      # traefik.ingress.kubernetes.io/redirect-permanent: "true"
+      # traefik.ingress.kubernetes.io/redirect-regex: ^http://(.*)
+      # traefik.ingress.kubernetes.io/redirect-replacement: https://$1
+    labels: {}
+    hostsAndPaths: {}
+  publicType:
+    enabled: false
+    annotations:
+      kubernetes.io/ingress.class: traefik
+      # traefik.ingress.kubernetes.io/redirect-permanent: "true"
+      # traefik.ingress.kubernetes.io/redirect-regex: ^http://(.*)
+      # traefik.ingress.kubernetes.io/redirect-replacement: https://$1
+    labels: {}
+    hostsAndPaths: {}
+  externalType:
+    enabled: false
+    annotations:
+      kubernetes.io/ingress.class: traefik
+      # traefik.ingress.kubernetes.io/redirect-permanent: "true"
+      # traefik.ingress.kubernetes.io/redirect-regex: ^http://(.*)
+      # traefik.ingress.kubernetes.io/redirect-replacement: https://$1
+      # traefik.ingress.kubernetes.io/whitelist-source-range: '0.0.0.0/0'
+    labels: {}
+    hostsAndPaths: {}
+  privateType:
+    enabled: false
+    annotations:
+      kubernetes.io/ingress.class: traefik
+      # traefik.ingress.kubernetes.io/redirect-permanent: "true"
+      # traefik.ingress.kubernetes.io/redirect-regex: ^http://(.*)
+      # traefik.ingress.kubernetes.io/redirect-replacement: https://$1
+      # traefik.ingress.kubernetes.io/whitelist-source-range: '0.0.0.0/0'
+    labels: {}
+    hostsAndPaths: {}
+java:
+  jvmOpts: -Xmx512m -Xms512m
+  bootOpts:
+
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  limits:
+   memory: 1Gi
+  requests:
+   memory: 512Mi
+
+
+affinity: {}
+healthCheck: __healthurl
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 60
+  timeoutSeconds: 5
+  failureThreshold: 3
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 60
+  timeoutSeconds: 3
+  periodSeconds: 5
+
+apollo:
+  enabled: false
+
+timezone: Asia/Shanghai
